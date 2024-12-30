@@ -1,6 +1,9 @@
 from instagrapi import Client
 import time
 import os
+import logging
+from instagrapi.mixins import comment
+
 
 cl = Client()
 username = os.getenv("INSTA_USERNAME")
@@ -9,6 +12,9 @@ try:
     cl.login(username, password)
 except Exception as e:
     print(f"Login failed: {e}")
+
+logging.basicConfig(level=logging.INFO)
+logging.info(f"Sending DM to {comment.user.username}")
 
 
 def fetch_comments(media_id):
