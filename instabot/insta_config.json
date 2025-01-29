@@ -1,0 +1,18 @@
+{
+  "messages": {
+    "greeting_message": "Hello! We noticed your comment. How can we assist you? (with button 'Want'')",
+    "non_subscribed_messages": [
+      "Hey! You are not subscribed yet!",
+      "Please subscribe to our channel to get access to all our content.",
+      "Click 'Subscribe' button to get access to all our content."
+    ],
+    "subscribed_message": "Thank you you are with me! (with button 'Watch')",
+    "await_message": "I`m still waiting for your action!"
+  },
+  "post_url": "https://www.instagram.com/p/C1HW5ZnNFni/?igsh=dTRqcXU0NHNlcmRn",
+  "trigger_keywords": [
+    "help",
+    "support",
+    "info"
+  ]
+}
