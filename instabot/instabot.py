@@ -9,10 +9,10 @@ load_dotenv()
 
 
 class Comments:
-    def __init__(self, client, trigger_keywords, post_url):
+    def __init__(self, client, config):
         self.client = client
-        self.post_url = post_url
-        self.trigger_keywords = trigger_keywords
+        self.post_url = config['post_url']
+        self.trigger_keywords = config['trigger_keywords']
 
     def fetch_comments(self, media_id):
         try:
@@ -34,15 +34,13 @@ class Comments:
         return filtered_comments
 
 
-class InstagramBot:
-    def __init__(self, username, password, message, trigger_keywords, post_url):
+class ChatBot:
+    def __init__(self, username, password, config):
+        self.config = config
         self.cl = Client()
         self.username = username
         self.password = password
-        self.message = message
-        self.trigger_keywords = trigger_keywords
-        self.post_url = post_url
-        self.comments_handler = Comments(self.cl, trigger_keywords, post_url)
+        self.comments_handler = Comments(self.cl, config)
 
     def login(self):
         try:
@@ -66,8 +64,11 @@ class InstagramBot:
     def send_message_to_user(self, username):
         try:
             user_id = self.cl.user_id_from_username(username)
-            self.cl.direct_send(self.message, user_ids=[user_id])
-            print(f"Message sent to @{username}: {self.message}")
+
+            greeting_message = self.config['messages']['greeting_message']
+
+            self.cl.direct_send(greeting_message, user_ids=[user_id])
+            print(f"Message sent to @{username}: {greeting_message}")
         except Exception as e:
             print(f"Failed to send message to @{username}: {e}")
 
@@ -79,20 +80,14 @@ def load_config(config_file):
 
 def main():
     config = load_config("instabot/insta_config.json")
-
-    trigger_keywords = config['trigger_keywords']
-    post_url = config['post_url']
-    messages = config['messages']
-
     username = os.getenv("INSTA_USERNAME")
     password = os.getenv("INSTA_PASSWORD")
-    message = messages['greeting_message']
 
-    bot = InstagramBot(username, password, message, trigger_keywords, post_url)
+    bot = ChatBot(username, password, config)
 
     bot.login()
 
-    media_id = bot.cl.media_pk_from_url(post_url)
+    media_id = bot.cl.media_pk_from_url(config['post_url'])
 
     target_username = bot.get_target_username(media_id)
 
