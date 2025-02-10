@@ -4,7 +4,7 @@
     "non_subscribed_messages": [
       "Hey! You are not subscribed yet!",
       "Please subscribe to our channel to get access to all our content.",
-      "Click 'Subscribe' button to get access to all our content."
+      "Click 'Subscribe' button to get access to all our content!"
     ],
     "subscribed_message": "Thank you you are with me! Please enter 'Watch' to get my content)",
     "await_message": "I`m still waiting for your action!"
