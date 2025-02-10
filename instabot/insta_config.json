@@ -6,7 +6,7 @@
       "Please subscribe to our channel to get access to all our content.",
       "Click 'Subscribe' button to get access to all our content."
     ],
-    "subscribed_message": "Thank you you are with me! (with button 'Watch')",
+    "subscribed_message": "Thank you you are with me! Please enter 'Watch' to get my content)",
     "await_message": "I`m still waiting for your action!"
   },
   "post_url": "https://www.instagram.com/p/C1HW5ZnNFni/?igsh=dTRqcXU0NHNlcmRn",
@@ -15,7 +15,9 @@
     "support",
     "info"
   ],
-  "commands": [
-    "want", "watch", "done"
-  ]
+  "commands": {
+    "want": "want",
+    "watch":"watch",
+    "done": "done"
+  }
 }
