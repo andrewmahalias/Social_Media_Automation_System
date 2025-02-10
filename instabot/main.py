@@ -29,16 +29,25 @@ def main():
         if bot.check_user_messages(target_username, "want"):
             if bot.is_user_subscribed(target_username):
                 bot.send_message_to_user(target_username, config["messages"]["subscribed_message"])
-                if bot.check_user_messages(target_username, "watch"):
-                    bot.send_message_to_user(target_username, "Enjoy the content!")
             else:
-                bot.send_message_to_user(target_username, config["messages"]["non_subscribed_message"][0])
-                if bot.check_user_messages(target_username, "done"):
-                    if bot.is_user_subscribed(target_username):
-                        bot.send_message_to_user(target_username, "Thank you for your action!")
-                        bot.send_message_to_user(target_username, config["messages"]["subscribed_message"])
-                    else:
-                        bot.send_message_to_user(target_username, config["messages"]["non_subscribed_message"][1])
+                bot.send_message_to_user(target_username, config["messages"]["non_subscribed_messages"])
+
+            # Перевіряємо, чи користувач хоче переглянути контент
+            if bot.check_user_messages(target_username, "watch"):
+                bot.send_message_to_user(target_username, "Enjoy the content!")
+
+            # Якщо користувач раніше не був підписаний, але виконав "done"
+            if not bot.is_user_subscribed(target_username) and bot.check_user_messages(target_username, "done"):
+                bot.send_message_to_user(target_username, "Thank you for your action!")
+
+                # Повторно перевіряємо підписку після "done"
+                if bot.is_user_subscribed(target_username):
+                    bot.send_message_to_user(target_username, config["messages"]["subscribed_message"])
+                    # Тепер користувач може дивитися контент
+                    if bot.check_user_messages(target_username, "watch"):
+                        bot.send_message_to_user(target_username, "Enjoy the content!")
+                else:
+                    bot.send_message_to_user(target_username, config["messages"]["non_subscribed_message"][1])
 
     else:
         print("No target user found based on the trigger keywords.")

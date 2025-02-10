@@ -75,36 +75,76 @@ class ChatBot:
         try:
             user_id = self.cl.user_id_from_username(username)
             self.cl.direct_send(message, user_ids=[user_id])
+            time.sleep(5)
             print(f"Message sent to @{username}: {message}")
         except Exception as e:
             print(f"Failed to send message to @{username}: {e}")
 
     def check_user_messages(self, username, command):
-        """ Перевірка, чи користувач відправив потрібне повідомлення """
+        """
+        Checks if the specified user sent the specified command.
+        :param username: Username to check messages for
+        :param command: Command to look for in messages
+        :return: Boolean indicating if command was found
+        """
         try:
             user_id = self.cl.user_id_from_username(username)
+            command = command.lower()
 
-            for attempt in range(5):  # До 5 повторних спроб
+            print(f"Checking messages for user @{username} (ID: {user_id})")
+            print(f"Looking for command: '{command}'")
+
+            threads = self.cl.direct_threads()
+            user_thread = None
+
+            for thread in threads:
+                if username in [u.username for u in thread.users]:
+                    user_thread = thread.id
+                    break
+
+            if not user_thread:
+                print(f"No active thread found with @{username}.")
+                return False
+
+            print(f"Found thread ID: {user_thread}")
+
+            for attempt in range(5):
                 try:
-                    last_messages = self.cl.direct_messages(user_id, amount=10)
+                    last_messages = self.cl.direct_messages(user_thread, amount=10)
+
+                    if not last_messages:
+                        print(f"No messages retrieved from @{username}. Possible API restrictions.")
+                        return False
+
+                    print(f"\nAttempt {attempt + 1}/5:")
+                    print("Retrieved messages:")
                     for msg in last_messages:
-                        if msg.text.strip().lower() == command:
-                            print(f"User @{username} sent '{command}'.")
-                            return True
-                    return False  # Якщо повідомлення немає, повертаємо False
+                        print(f"- Original text: '{msg.text}'")
+                        if msg.text:
+                            processed_text = msg.text.strip().lower()
+                            print(f"  Processed text: '{processed_text}'")
+                            print(f"  Contains '{command}': {command in processed_text}")
+
+                            if command in processed_text:
+                                print(f"✓ Command '{command}' found in message from @{username}")
+                                return True
+
+                    print(f"✗ Command not found in any message")
+                    return False
 
                 except Exception as e:
                     if "500" in str(e):
                         print(f"Server error 500 for @{username}. Retrying in 30 sec... ({attempt + 1}/5)")
-                        time.sleep(30)  # Чекаємо перед повторною спробою
+                        time.sleep(30)
                     else:
-                        raise e  # Інші помилки пробиваємо далі
+                        print(f"Unexpected error: {str(e)}")
+                        raise e
 
             print(f"Max retries exceeded for @{username}. Skipping.")
             return False
 
         except Exception as e:
-            print(f"Error checking messages for @{username}: {e}")
+            print(f"Error checking messages: {e}")
             return False
 
     def is_user_subscribed(self, username):
@@ -115,7 +155,7 @@ class ChatBot:
         """
         try:
             user_info = self.cl.user_info_by_username(username)
-            return user_info.followed_by  # True, якщо підписаний, False — якщо ні
+            return user_info.followed_by
         except Exception as e:
             print(f"Error checking subscription status for @{username}: {e}")
             return False
