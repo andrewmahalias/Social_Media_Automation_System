@@ -147,7 +147,7 @@ class ChatBot:
             print(f"Error checking messages: {e}")
             return False
 
-    def is_user_subscribed(self, username):
+    def is_user_subscribed(self, username):  # check this method. It returns False. Find efficient attribute to check subscription
         """
         Checks if the specified user is subscribed to the account.
         :param username:
@@ -155,7 +155,7 @@ class ChatBot:
         """
         try:
             user_info = self.cl.user_info_by_username(username)
-            return user_info.followed_by
+            return user_info.is_followed_by
         except Exception as e:
             print(f"Error checking subscription status for @{username}: {e}")
             return False

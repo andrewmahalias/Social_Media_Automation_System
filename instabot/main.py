@@ -27,6 +27,7 @@ def main():
         time.sleep(10)  # Даємо користувачеві час на відповідь
 
         if bot.check_user_messages(target_username, "want"):
+            print(bot.is_user_subscribed(target_username))
             if bot.is_user_subscribed(target_username):
                 bot.send_message_to_user(target_username, config["messages"]["subscribed_message"])
             else:
