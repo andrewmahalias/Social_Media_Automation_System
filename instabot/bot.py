@@ -110,7 +110,7 @@ class ChatBot:
 
             for attempt in range(5):
                 try:
-                    last_messages = self.cl.direct_messages(user_thread, amount=10)
+                    last_messages = self.cl.direct_messages(user_thread, amount=1)
 
                     if not last_messages:
                         print(f"No messages retrieved from @{username}. Possible API restrictions.")

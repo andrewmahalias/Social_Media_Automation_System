@@ -48,6 +48,8 @@ def main():
                         bot.send_message_to_user(target_username, "Enjoy the content!")
                 else:
                     bot.send_message_to_user(target_username, config["messages"]["non_subscribed_message"][1])
+        else:
+            bot.send_message_to_user(target_username, config["messages"]["greeting_message"])
 
     else:
         print("No target user found based on the trigger keywords.")
