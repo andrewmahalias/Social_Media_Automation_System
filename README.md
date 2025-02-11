@@ -7,10 +7,15 @@ InstaBot is an automated Instagram bot built using the instagrapi library. It ca
  - Check if a user has responded with a specific command.
  - Verify if a user follows the bot’s account.
 ### Features
-✔ Fetch comments and detect trigger keywords.
-✔ Send automated messages to users.
-✔ Check replies from users in DMs.
-✔ Verify if a user follows the bot’s account.
+✔ Detects specific keywords in comments.
+
+✔ Sends automatic replies to users.
+
+✔ Checks if a user is subscribed before granting access.
+
+✔ Provides commands for user interaction.
+
+✔ Uses a configurable JSON file for easy customization.
 
 ### Installation
 1. Clone the Repository
@@ -52,10 +57,38 @@ Modify ```config.json``` to change the bot's behavior:
 
 ```json
 {
-  "post_url": "https://www.instagram.com/p/example/",
-  "trigger_keywords": ["want", "interested", "more_info"]
+  "messages": {
+    "greeting_message": "Hello! We noticed your comment. Reply 'Want' to continue.",
+    "non_subscribed_messages": [
+      "Hey! You are not subscribed yet!",
+      "Please subscribe to our channel to get access to all our content.",
+      "Click 'Subscribe' button to get access to all our content!"
+    ],
+    "subscribed_message": "Thank you you are with me! Please enter 'Watch' to get my content)",
+    "await_message": "I`m still waiting for your action!"
+  },
+  "post_url": "https://www.instagram.com/p/C1HW5ZnNFni/?igsh=dTRqcXU0NHNlcmRn",
+  "trigger_keywords": [
+    "help",
+    "support",
+    "info"
+  ],
+  "commands": {
+    "want": "want",
+    "watch": "watch",
+    "done": "done"
+  }
 }
 ```
+### Parameters:
+
+ - messages: Defines automated responses.
+
+ - post_url: Specifies the Instagram post for monitoring.
+
+ - trigger_keywords: List of keywords that activate bot responses.
+
+ - commands: Predefined commands for user interaction.
 ## Troubleshooting
 ### 1. Rate Limits & Login Issues
  - If you encounter "Rate limit exceeded", wait a few minutes before retrying.
