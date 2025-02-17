@@ -1,10 +1,12 @@
+import logging
 import time
 
-import requests
 from dotenv import load_dotenv
 from instagrapi import Client
+from instagrapi.exceptions import LoginRequired
 
 load_dotenv()
+logger = logging.getLogger()
 
 
 class CommentsHandler:
@@ -33,24 +35,143 @@ class CommentsHandler:
         return filtered_comments
 
 
+class MessageHandler:
+    """Handles checking user messages for specific commands in Instagram DMs."""
+
+    def __init__(self, client):
+        """
+        Initializes the MessageHandler.
+        :param client: Instagram client instance (e.g., instagrapi.Client)
+        """
+        self.client = client
+
+    def _get_user_thread_id(self, username):
+        """
+        Finds the thread ID for a conversation with the given username.
+        :param username: The Instagram username
+        :return: Thread ID or None if not found
+        """
+        try:
+            threads = self.client.direct_threads()
+
+            for thread in threads:
+                if username in [u.username for u in thread.users]:
+                    logging.info(f"Found thread ID for @{username}: {thread.id}")
+                    return thread.id
+
+            return None
+
+        except Exception as e:
+            logging.error(f"Error retrieving thread ID for @{username}: {e}")
+            return None
+
+    def search_next_message(self, thread_id, user_id):
+        """
+        Continuously checks for new messages in the thread without handling commands.
+        When a new message appears, it is passed to _search_messages for processing.
+        :param thread_id: The ID of the direct message thread
+        :param user_id: The Instagram user ID
+        :return: None
+        """
+        last_checked_message = None  # Keeps track of the last checked message ID to detect new ones.
+
+
+        try:
+            # Retrieve the latest messages in the thread (1 latest message)
+            last_messages = self.client.direct_messages(thread_id, amount=1)
+
+            if last_messages:
+                # Assuming last_messages is a list of message objects, get the most recent one
+                latest_message = last_messages[0]
+
+                # Check if the latest message is from the specified user and if it's a new message
+                if latest_message.user_id == user_id and latest_message.id != last_checked_message:
+                    last_checked_message = latest_message.id  # Update the last checked message ID
+                    logging.info(f"New message received: {latest_message.text}")
+
+            time.sleep(5)  # Wait for a short period before checking again
+
+        except Exception as e:
+            logging.error(f"Error while checking for new messages: {e}")
+            time.sleep(5)
+
+    def _search_command(self, user_id, command, last_messages):
+        """
+        Searches for the specified command in the latest messages.
+        :param user_id: The Instagram user ID
+        :param command: The command to search for
+        :param last_messages: List of the latest messages
+        :return: Boolean indicating if the command was found
+        """
+        try:
+            if not last_messages:
+                logging.warning(f"No messages retrieved from user ID {user_id}. Possible API restrictions.")
+                return False
+
+            for msg in last_messages:
+                # Check if message is valid and belongs to the user
+                if hasattr(msg, 'user_id') and msg.user_id == user_id:
+                    processed_text = msg.text.strip().lower() if msg.text else ""
+
+                    # Case-insensitive command check
+                    if command.lower() in processed_text:
+                        logging.info(f"✓ Command '{command}' found in message from user ID {user_id}.")
+                        return True
+
+            logging.info(f"Command '{command}' not found in messages from user ID {user_id}.")
+            return False  # Command not found
+
+        except Exception as e:
+            logging.error(f"Unexpected error during message retrieval: {e}")
+            return False
+
+    def send_message_to_user(self, username, message):
+        """
+        Sends a message to the specified user.
+        :param username:
+        :param message:
+        :return:
+        """
+        try:
+            user_id = self.client.user_id_from_username(username)
+            self.client.direct_send(message, user_ids=[user_id])
+            time.sleep(5)
+            print(f"Message sent to @{username}: {message}")
+        except Exception as e:
+            print(f"Failed to send message to @{username}: {e}")
+
+
 class ChatBot:
-    def __init__(self, username, password, config):
+    def __init__(self, username, password, config, session_file="session.json"):
         self.config = config
         self.cl = Client()
+        self.session_file = session_file
         self.username = username
         self.password = password
         self.comments_handler = CommentsHandler(self.cl, config)
 
     def login(self):
+        """Login to Instagram using session file or credentials."""
+        try:
+            self.cl.load_settings(self.session_file)
+            self.cl.login(self.username, self.password)
+            try:
+                self.cl.get_timeline_feed()
+                print(f"Logged in using session for {self.username}")
+                return
+            except LoginRequired:
+                print("Session expired, re-logging...")
+        except Exception as e:
+            print(f"Couldn't load session: {e}")
+
         try:
             self.cl.login(self.username, self.password)
             print(f"Logged in as {self.username}")
-        except requests.exceptions.RetryError as e:
-            print("Rate limit exceeded. Pausing...")
-            time.sleep(60)
+            self.cl.dump_settings(self.session_file)
+            print(f"New session saved for {self.username}")
         except Exception as e:
             print(f"Login failed: {e}")
-            exit(0)
+            exit(1)
 
     def get_target_username(self, media_id):
         """
@@ -65,97 +186,22 @@ class ChatBot:
             return filtered_comments[0].user.username
         return None
 
-    def send_message_to_user(self, username, message):
-        """
-        Sends a message to the specified user.
-        :param username:
-        :param message:
-        :return:
-        """
-        try:
-            user_id = self.cl.user_id_from_username(username)
-            self.cl.direct_send(message, user_ids=[user_id])
-            time.sleep(5)
-            print(f"Message sent to @{username}: {message}")
-        except Exception as e:
-            print(f"Failed to send message to @{username}: {e}")
-
-    def check_user_messages(self, username, command):
-        """
-        Checks if the specified user sent the specified command.
-        :param username: Username to check messages for
-        :param command: Command to look for in messages
-        :return: Boolean indicating if command was found
-        """
-        try:
-            user_id = self.cl.user_id_from_username(username)
-            command = command.lower()
-
-            print(f"Checking messages for user @{username} (ID: {user_id})")
-            print(f"Looking for command: '{command}'")
-
-            threads = self.cl.direct_threads()
-            user_thread = None
-
-            for thread in threads:
-                if username in [u.username for u in thread.users]:
-                    user_thread = thread.id
-                    break
-
-            if not user_thread:
-                print(f"No active thread found with @{username}.")
-                return False
-
-            print(f"Found thread ID: {user_thread}")
-
-            for attempt in range(5):
-                try:
-                    last_messages = self.cl.direct_messages(user_thread, amount=1)
-
-                    if not last_messages:
-                        print(f"No messages retrieved from @{username}. Possible API restrictions.")
-                        return False
-
-                    print(f"\nAttempt {attempt + 1}/5:")
-                    print("Retrieved messages:")
-                    for msg in last_messages:
-                        print(f"- Original text: '{msg.text}'")
-                        if msg.text:
-                            processed_text = msg.text.strip().lower()
-                            print(f"  Processed text: '{processed_text}'")
-                            print(f"  Contains '{command}': {command in processed_text}")
-
-                            if command in processed_text:
-                                print(f"✓ Command '{command}' found in message from @{username}")
-                                return True
-
-                    print(f"✗ Command not found in any message")
-                    return False
-
-                except Exception as e:
-                    if "500" in str(e):
-                        print(f"Server error 500 for @{username}. Retrying in 30 sec... ({attempt + 1}/5)")
-                        time.sleep(30)
-                    else:
-                        print(f"Unexpected error: {str(e)}")
-                        raise e
-
-            print(f"Max retries exceeded for @{username}. Skipping.")
-            return False
-
-        except Exception as e:
-            print(f"Error checking messages: {e}")
-            return False
-
-    def is_user_subscribed(self, username):  # check this method. It returns False. Find the correct attribute to check subscription
+    def is_user_subscribed(self,
+                           username):  # check this method. It returns False. Find the correct attribute to check subscription
         """
         Checks if the specified user is subscribed to the account.
         :param username:
         :return: True if the user is subscribed, False otherwise.
         """
         try:
-            user_info = self.cl.user_info_by_username(username)
-            return user_info.is_followed_by
+            user_id = self.cl.user_id_from_username(username)
+            relationships = self.cl.user_friendship_v1(user_id)
+            print(f'Subscription status for @{username} - {relationships.followed_by}')
+
+            if relationships:
+                return relationships.followed_by
+
+            return False
         except Exception as e:
             print(f"Error checking subscription status for @{username}: {e}")
             return False

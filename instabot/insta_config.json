@@ -2,17 +2,15 @@
   "messages": {
     "greeting_message": "Hello! We noticed your comment. Reply 'Want' to continue.",
     "non_subscribed_messages": [
-      "Hey! You are not subscribed yet!",
+      "Hey! You are not subscribed yet! Subscribe and then enter 'Done'!",
       "Please subscribe to our channel to get access to all our content.",
-      "Click 'Subscribe' button to get access to all our content!"
+      "Click 'Subscribe' and then enter 'Done'!"
     ],
     "subscribed_message": "Thank you you are with me! Please enter 'Watch' to get my content)",
     "await_message": "I`m still waiting for your action!"
   },
   "post_url": "https://www.instagram.com/p/C1HW5ZnNFni/?igsh=dTRqcXU0NHNlcmRn",
   "trigger_keywords": [
-    "help",
-    "support",
     "info"
   ],
   "commands": {
