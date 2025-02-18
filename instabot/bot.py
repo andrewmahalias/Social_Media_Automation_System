@@ -44,6 +44,7 @@ class MessageHandler:
         :param client: Instagram client instance (e.g., instagrapi.Client)
         """
         self.client = client
+        self.latest_message = None
 
     def _get_user_thread_id(self, username):
         """
@@ -73,31 +74,31 @@ class MessageHandler:
         :param user_id: The Instagram user ID
         :return: None
         """
-        last_checked_message = None  # Keeps track of the last checked message ID to detect new ones.
+        last_checked_message = None
 
         while True:
             try:
-                # Retrieve the latest messages in the thread (1 latest message)
+
                 last_messages = self.client.direct_messages(thread_id, amount=1)
 
                 if last_messages:
-                    # Assuming last_messages is a list of message objects, get the most recent one
-                    latest_message = last_messages[0]
 
-                    # Check if the latest message is from the specified user and if it's a new message
-                    if latest_message.user_id == user_id and latest_message.id != last_checked_message:
-                        last_checked_message = latest_message.id  # Update the last checked message ID
-                        logging.info(f"New message received: {latest_message.text}")
-                        print(latest_message.text)
-                        return True
+                    self.latest_message = last_messages[0]
 
-                time.sleep(5)  # Wait for a short period before checking again
+                    if self.latest_message.user_id == user_id and self.latest_message.id != last_checked_message:
+                        last_checked_message = self.latest_message.id
+                        logging.info(f"New message received: {self.latest_message.text}")
+                        print(self.latest_message.text)
+                        return self.latest_message.text
+                    return True
+
+                time.sleep(5)
 
             except Exception as e:
                 logging.error(f"Error while checking for new messages: {e}")
                 time.sleep(5)
 
-    def search_command(self, user_id, last_messages, command):
+    def search_command(self, user_id, command):
         """
         Searches for the specified command in the latest messages.
         :param user_id: The Instagram user ID
@@ -106,23 +107,23 @@ class MessageHandler:
         :return: Boolean indicating if the command was found
         """
         try:
-            if not last_messages:
+            if not self.latest_message.text:
                 logging.warning(f"No messages retrieved from user ID {user_id}. Possible API restrictions.")
                 return False
 
-            for msg in last_messages:
-                print(msg)
-                # Check if message is valid and belongs to the user
-                if hasattr(msg, 'user_id') and msg.user_id == user_id:
-                    processed_text = msg.text.strip().lower() if msg.text else ""
+            if self.latest_message.user_id == user_id:
 
-                    # Case-insensitive command check
-                    if command.lower() in processed_text:
-                        logging.info(f"✓ Command '{command}' found in message from user ID {user_id}.")
-                        return True
+                processed_text = self.latest_message.text.strip().lower() if self.latest_message.text else ""
+
+                if command.lower() in processed_text:
+                    logging.info(f"✓ Command '{command}' found in message from user ID {user_id}.")
+                    return True
+                else:
+                    return False
+
 
             logging.info(f"Command '{command}' not found in messages from user ID {user_id}.")
-            return False  # Command not found
+            return False
 
         except Exception as e:
             logging.error(f"Unexpected error during message retrieval: {e}")
