@@ -75,27 +75,29 @@ class MessageHandler:
         """
         last_checked_message = None  # Keeps track of the last checked message ID to detect new ones.
 
+        while True:
+            try:
+                # Retrieve the latest messages in the thread (1 latest message)
+                last_messages = self.client.direct_messages(thread_id, amount=1)
 
-        try:
-            # Retrieve the latest messages in the thread (1 latest message)
-            last_messages = self.client.direct_messages(thread_id, amount=1)
+                if last_messages:
+                    # Assuming last_messages is a list of message objects, get the most recent one
+                    latest_message = last_messages[0]
 
-            if last_messages:
-                # Assuming last_messages is a list of message objects, get the most recent one
-                latest_message = last_messages[0]
+                    # Check if the latest message is from the specified user and if it's a new message
+                    if latest_message.user_id == user_id and latest_message.id != last_checked_message:
+                        last_checked_message = latest_message.id  # Update the last checked message ID
+                        logging.info(f"New message received: {latest_message.text}")
+                        print(latest_message.text)
+                        return True
 
-                # Check if the latest message is from the specified user and if it's a new message
-                if latest_message.user_id == user_id and latest_message.id != last_checked_message:
-                    last_checked_message = latest_message.id  # Update the last checked message ID
-                    logging.info(f"New message received: {latest_message.text}")
+                time.sleep(5)  # Wait for a short period before checking again
 
-            time.sleep(5)  # Wait for a short period before checking again
+            except Exception as e:
+                logging.error(f"Error while checking for new messages: {e}")
+                time.sleep(5)
 
-        except Exception as e:
-            logging.error(f"Error while checking for new messages: {e}")
-            time.sleep(5)
-
-    def _search_command(self, user_id, command, last_messages):
+    def search_command(self, user_id, last_messages, command):
         """
         Searches for the specified command in the latest messages.
         :param user_id: The Instagram user ID
@@ -109,6 +111,7 @@ class MessageHandler:
                 return False
 
             for msg in last_messages:
+                print(msg)
                 # Check if message is valid and belongs to the user
                 if hasattr(msg, 'user_id') and msg.user_id == user_id:
                     processed_text = msg.text.strip().lower() if msg.text else ""

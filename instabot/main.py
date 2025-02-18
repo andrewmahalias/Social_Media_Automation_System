@@ -28,40 +28,42 @@ def main():
             target_username = bot.get_target_username(media_id)
 
             if target_username:
+                # Send greeting message
                 msg_handler.send_message_to_user(target_username, config["messages"]["greeting_message"])
-                time.sleep(10)
+                time.sleep(5)  # Shorter sleep for faster response
 
                 user_id = bot.cl.user_id_from_username(target_username)
                 thread_id = msg_handler._get_user_thread_id(target_username)
 
                 if thread_id:
-                    # Wait for the next message from the user (this is a blocking call)
+
                     msg_handler.search_next_message(thread_id, user_id)
 
-                    # Now that we've waited for a message, check for commands
-                    if msg_handler._search_command(thread_id, user_id, "want"):
+                    if msg_handler.search_command(thread_id, user_id, "want"):
                         logging.info(f"User @{target_username} wants access.")
 
-                    if bot.is_user_subscribed(target_username):
-                        msg_handler.send_message_to_user(target_username, config["messages"]["subscribed_message"])
-                        if msg_handler._search_command(thread_id, user_id, "watch"):
-                            msg_handler.send_message_to_user(target_username, "Enjoy the content!")
-                    else:
-                        msg_handler.send_message_to_user(target_username, config["messages"]["non_subscribed_messages"])
-
-                        if msg_handler._search_command(thread_id, user_id, "done"):
-                            msg_handler.send_message_to_user(target_username, "Thank you for your action!")
+                        if bot.is_user_subscribed(target_username):
+                            msg_handler.send_message_to_user(target_username, config["messages"]["subscribed_message"])
+                            if msg_handler.search_command(thread_id, user_id, "watch"):
+                                msg_handler.send_message_to_user(target_username, "Enjoy the content!")
+                        else:
+                            msg_handler.send_message_to_user(target_username,
+                                                             config["messages"]["non_subscribed_messages"])
+                            if msg_handler.search_command(thread_id, user_id, "done"):
+                                msg_handler.send_message_to_user(target_username, "Thank you for your action!")
+                            # Check subscription after "done" command
                             if bot.is_user_subscribed(target_username):
                                 msg_handler.send_message_to_user(target_username,
                                                                  config["messages"]["subscribed_message"])
-                                if msg_handler._search_command(thread_id, user_id, "watch"):
+                                if msg_handler.search_command(thread_id, user_id, "watch"):
                                     msg_handler.send_message_to_user(target_username, "Enjoy the content!")
                             else:
                                 msg_handler.send_message_to_user(target_username,
                                                                  config["messages"]["non_subscribed_message"][1])
+                    else:
+                        logging.info(f"User @{target_username} did not send 'want'.")
                 else:
-                    logging.info(f"User @{target_username} did not send 'want'.")
-
+                    logging.info(f"No thread found for user @{target_username}.")
             else:
                 logging.info("No target user found based on the trigger keywords.")
 
