@@ -88,7 +88,6 @@ class MessageHandler:
                     if self.latest_message.user_id == user_id and self.latest_message.id != last_checked_message:
                         last_checked_message = self.latest_message.id
                         logging.info(f"New message received: {self.latest_message.text}")
-                        print(self.latest_message.text)
                         return self.latest_message.text
                     return True
 
@@ -120,7 +119,6 @@ class MessageHandler:
                     return True
                 else:
                     return False
-
 
             logging.info(f"Command '{command}' not found in messages from user ID {user_id}.")
             return False
