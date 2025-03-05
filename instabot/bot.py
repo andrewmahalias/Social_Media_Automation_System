@@ -69,29 +69,31 @@ class MessageHandler:
     def search_next_message(self, thread_id, user_id):
         """
         Continuously checks for new messages in the thread without handling commands.
-        When a new message appears, it is passed to _search_messages for processing.
+        When a new message appears, it is passed to search_command for processing.
         :param thread_id: The ID of the direct message thread
         :param user_id: The Instagram user ID
-        :return: None
+        :return: The message text if a new message is found, else None
         """
         last_checked_message = None
 
         while True:
             try:
-
                 last_messages = self.client.direct_messages(thread_id, amount=1)
+                logging.info(f"Direct messages response: {last_messages}")
 
-                if last_messages:
-
+                if last_messages and last_messages[0]:
                     self.latest_message = last_messages[0]
 
                     if self.latest_message.user_id == user_id and self.latest_message.id != last_checked_message:
                         last_checked_message = self.latest_message.id
                         logging.info(f"New message received: {self.latest_message.text}")
                         return self.latest_message.text
-                    return True
 
                 time.sleep(5)
+
+            except AttributeError:
+                logging.error("Error: Attempted to access attributes of NoneType. No valid messages retrieved.")
+                return None  # Замість помилки повертаємо `None`
 
             except Exception as e:
                 logging.error(f"Error while checking for new messages: {e}")
@@ -102,25 +104,20 @@ class MessageHandler:
         Searches for the specified command in the latest messages.
         :param user_id: The Instagram user ID
         :param command: The command to search for
-        :param last_messages: List of the latest messages
         :return: Boolean indicating if the command was found
         """
         try:
-            if not self.latest_message.text:
-                logging.warning(f"No messages retrieved from user ID {user_id}. Possible API restrictions.")
+            if not self.latest_message or not hasattr(self.latest_message, "text"):
+                logging.warning(f"No messages retrieved from user ID {user_id}.")
                 return False
 
-            if self.latest_message.user_id == user_id:
+            processed_text = self.latest_message.text.strip().lower()
+            logging.info(f"Latest message: {processed_text}")
 
-                processed_text = self.latest_message.text.strip().lower() if self.latest_message.text else ""
+            if command.lower() in processed_text:
+                logging.info(f"✓ Command '{command}' found in message from user ID {user_id}.")
+                return True
 
-                if command.lower() in processed_text:
-                    logging.info(f"✓ Command '{command}' found in message from user ID {user_id}.")
-                    return True
-                else:
-                    return False
-
-            logging.info(f"Command '{command}' not found in messages from user ID {user_id}.")
             return False
 
         except Exception as e:

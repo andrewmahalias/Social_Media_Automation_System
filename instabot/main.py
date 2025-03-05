@@ -3,7 +3,10 @@ import logging
 import os
 import time
 
+import random
+
 from instabot.bot import ChatBot, MessageHandler
+from instabot.state_manager import StateManager, BotState
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -13,22 +16,6 @@ def load_config(config_file):
         return json.load(f)
 
 
-def wait_for_command(msg_handler, thread_id, user_id, command):
-    """
-    Continuously checks for the command in new messages.
-    :param msg_handler: MessageHandler instance
-    :param thread_id: The user's thread ID
-    :param user_id: The Instagram user ID
-    :param command: The command to wait for
-    :return: True if the command is found
-    """
-    while True:
-        msg_handler.search_next_message(thread_id, user_id)
-        if msg_handler.search_command(user_id, command):
-            return True
-        time.sleep(6)
-
-
 def main():
     config = load_config("insta_config.json")
     username = os.getenv("INSTA_USERNAME")
@@ -36,7 +23,24 @@ def main():
 
     bot = ChatBot(username, password, config)
     bot.login()
+    bot.cl.base_headers[
+        "User-Agent"] = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36"
+    bot.cl.base_headers["X-IG-App-ID"] = "567067343352427"
+    bot.cl.base_headers["X-IG-Device-ID"] = "android-49904f1265b9805d"
+    bot.cl.base_headers["X-IG-Android-ID"] = "android-49904f1265b9805d"
+    bot.cl.base_headers["X-IG-Connection-Type"] = "WIFI"
+    bot.cl.base_headers["X-IG-Capabilities"] = "3brTvw=="
+    bot.cl.base_headers["Accept-Language"] = "en-US"
+
+    bot.cl.api_version = "269.0.0.18.75"  # Match Instagram's app version
+    bot.cl.device_settings = {
+        "manufacturer": "Xiaomi",
+        "model": "M2101K6G",
+        "android_version": 13,
+        "android_release": "33",
+    }
     msg_handler = MessageHandler(bot.cl)
+    state_manager = StateManager()
 
     while True:
         try:
@@ -48,9 +52,6 @@ def main():
                 time.sleep(10)
                 continue
 
-            msg_handler.send_message_to_user(target_username, config["messages"]["greeting_message"])
-            time.sleep(5)
-
             user_id = bot.cl.user_id_from_username(target_username)
             thread_id = msg_handler._get_user_thread_id(target_username)
 
@@ -59,25 +60,40 @@ def main():
                 time.sleep(10)
                 continue
 
-            logging.info(f"Waiting for 'want' command from @{target_username}...")
-            if not wait_for_command(msg_handler, thread_id, user_id, "want"):
-                continue
+            # Fetch latest message
+            last_message = msg_handler.search_next_message(thread_id, user_id)
 
-            logging.info(f"User @{target_username} wants access.")
-            is_subscribed = bot.is_user_subscribed(target_username)
+            if last_message:
+                last_message = last_message.lower()
 
-            if is_subscribed:
-                msg_handler.send_message_to_user(target_username, config["messages"]["subscribed_message"])
-            else:
-                msg_handler.send_message_to_user(target_username, config["messages"]["non_subscribed_messages"])
+                if "want" in last_message:
+                    logging.info(f"User @{target_username} requested access.")
+                    state_manager.set_state(user_id, BotState.CHECKING_SUBSCRIPTION)
 
-            time.sleep(5)
+                elif "watch" in last_message:
+                    logging.info(f"User @{target_username} requested to watch.")
+                    msg_handler.send_message_to_user(target_username, "Enjoy the content!")
+                    state_manager.set_state(user_id, BotState.COMPLETED)
 
-            logging.info(f"Waiting for 'watch' command from @{target_username}...")
-            if wait_for_command(msg_handler, thread_id, user_id, "watch"):
-                msg_handler.send_message_to_user(target_username, "Enjoy the content!")
+            # Handle bot states
+            current_state = state_manager.get_state(user_id)
 
-            time.sleep(10)
+            if current_state == BotState.IDLE:
+                msg_handler.send_message_to_user(target_username, config["messages"]["greeting_message"])
+                state_manager.set_state(user_id, BotState.WAITING_FOR_WANT)
+
+            elif current_state == BotState.CHECKING_SUBSCRIPTION:
+                is_subscribed = bot.is_user_subscribed(target_username)
+                if is_subscribed:
+                    msg_handler.send_message_to_user(target_username, config["messages"]["subscribed_message"])
+                else:
+                    msg_handler.send_message_to_user(target_username, config["messages"]["non_subscribed_messages"])
+                state_manager.set_state(user_id, BotState.WAITING_FOR_WATCH)
+
+            elif current_state == BotState.COMPLETED:
+                logging.info(f"Interaction with @{target_username} completed.")
+
+            time.sleep(random.randint(5, 17))
 
         except Exception as e:
             logging.error(f"Error occurred: {e}")
