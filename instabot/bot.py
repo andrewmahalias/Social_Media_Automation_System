@@ -15,7 +15,7 @@ class CommentsHandler:
         self.post_url = config['post_url']
         self.trigger_keywords = config['trigger_keywords']
 
-    def fetch_comments(self, media_id):
+    def fetch_comments(self, media_id):   #todo: change or delete to recieve comments from webhook
         try:
             comments = self.client.media_comments(media_id)
             return comments
@@ -66,7 +66,7 @@ class MessageHandler:
             logging.error(f"Error retrieving thread ID for @{username}: {e}")
             return None
 
-    def search_next_message(self, thread_id, user_id):
+    def search_next_message(self, thread_id, user_id): #todo: change or delete to recieve message from webhook
         """
         Continuously checks for new messages in the thread without handling commands.
         When a new message appears, it is passed to search_command for processing.
