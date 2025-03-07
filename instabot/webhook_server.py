@@ -7,6 +7,7 @@ import logging
 app = FastAPI()
 
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
+ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 
 logging.basicConfig(level=logging.INFO)
 
