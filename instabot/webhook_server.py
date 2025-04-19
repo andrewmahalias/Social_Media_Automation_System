@@ -1,12 +1,20 @@
+import logging
 import os
 
 import uvicorn
 from fastapi import FastAPI, Request, HTTPException
-import logging
+
+from instabot import state_manager
+
+from bot_instance import bot, load_config
+from instabot.state_manager import BotState
 
 app = FastAPI()
+config = load_config("insta_config.json")
+username = os.getenv("INSTA_USERNAME")
+password = os.getenv("INSTA_PASSWORD")
 
-VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")  # todo: get tokens on Meta for Developers
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 
 logging.basicConfig(level=logging.INFO)
@@ -41,7 +49,11 @@ async def receive_comments(request: Request):
                         comment_id = change["value"]["id"]
                         comment_message = change["value"]["message"]
                         logging.info(f"New comment: {comment_message} (ID: {comment_id})")
-
+                        bot.comments_handler.filter_comments_by_keywords(comment_message)
+                        user_id = int(change["value"]["sender_id"])
+                        current_state = state_manager.get_state(user_id)
+                        if current_state == BotState.IDLE:
+                            state_manager.set_state(user_id, BotState.WAITING_FOR_WANT)
     return {"status": "ok"}
 
 

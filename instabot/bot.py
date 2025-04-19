@@ -15,24 +15,11 @@ class CommentsHandler:
         self.post_url = config['post_url']
         self.trigger_keywords = config['trigger_keywords']
 
-    def fetch_comments(self, media_id):   #todo: change or delete to recieve comments from webhook
-        try:
-            comments = self.client.media_comments(media_id)
-            return comments
-        except Exception as e:
-            print(f"Error fetching comments: {e}")
-            return []
-
-    def filter_comments_by_keywords(self, comments):
-        filtered_comments = [
-            comment
-            for comment in comments
-            if any(
-                keyword.lower() in comment.text.lower()
-                for keyword in self.trigger_keywords
-            )
-        ]
-        return filtered_comments
+    def filter_comments_by_keywords(self, comment_message):
+        return any(
+            keyword.lower() in comment_message.lower()
+            for keyword in self.trigger_keywords
+        )
 
 
 class MessageHandler:
@@ -66,7 +53,7 @@ class MessageHandler:
             logging.error(f"Error retrieving thread ID for @{username}: {e}")
             return None
 
-    def search_next_message(self, thread_id, user_id): #todo: change or delete to recieve message from webhook
+    def search_next_message(self, thread_id, user_id):  # todo: change or delete to recieve message from webhook
         """
         Continuously checks for new messages in the thread without handling commands.
         When a new message appears, it is passed to search_command for processing.
@@ -171,19 +158,6 @@ class ChatBot:
         except Exception as e:
             print(f"Login failed: {e}")
             exit(1)
-
-    def get_target_username(self, media_id):
-        """
-        Determines the target user based on the trigger keywords.
-        :param media_id:
-        :return:
-        """
-        comments = self.comments_handler.fetch_comments(media_id)
-        filtered_comments = self.comments_handler.filter_comments_by_keywords(comments)
-
-        if filtered_comments:
-            return filtered_comments[0].user.username
-        return None
 
     def is_user_subscribed(self,
                            username):  # check this method. It returns False. Find the correct attribute to check subscription
