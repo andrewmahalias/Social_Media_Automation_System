@@ -3,18 +3,17 @@ import os
 
 import uvicorn
 from fastapi import FastAPI, Request, HTTPException
+from fastapi import Response
 
 from instabot import state_manager
 
-from bot_instance import bot, load_config
+from bot_instance import bot, messages_handler, load_config
 from instabot.state_manager import BotState
 
 app = FastAPI()
 config = load_config("insta_config.json")
-username = os.getenv("INSTA_USERNAME")
-password = os.getenv("INSTA_PASSWORD")
 
-VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")  # todo: get tokens on Meta for Developers
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 
 logging.basicConfig(level=logging.INFO)
@@ -22,22 +21,22 @@ logging.basicConfig(level=logging.INFO)
 
 @app.get("/webhook")
 async def verify_webhook(request: Request):
-    """ Верифікація вебхука під час налаштування в Meta. """
-    params = await request.query_params
+    """ Verify webhook endpoint. """
+    params = request.query_params
     mode = params.get("hub.mode")
     token = params.get("hub.verify_token")
     challenge = params.get("hub.challenge")
 
     if mode == "subscribe" and token == VERIFY_TOKEN:
         logging.info("Webhook verified successfully.")
-        return int(challenge)
+        return Response(content=challenge, media_type="text/plain")
     else:
         raise HTTPException(status_code=403, detail="Verification failed")
 
 
 @app.post("/webhook/comments")
 async def receive_comments(request: Request):
-    """ Обробка отриманих коментарів під постами. """
+    """Comments webhook handler."""
     data = await request.json()
     logging.info(f"Received Comment Webhook: {data}")
 
@@ -46,11 +45,17 @@ async def receive_comments(request: Request):
             if "changes" in entry:
                 for change in entry["changes"]:
                     if change["field"] == "comments":
-                        comment_id = change["value"]["id"]
-                        comment_message = change["value"]["message"]
-                        logging.info(f"New comment: {comment_message} (ID: {comment_id})")
+                        comment_message = change["value"]["text"]
+                        user_id = int(change["value"]["from"]["id"])
+                        username = change["value"]["from"]["username"]
+                        logging.info(f"New comment from @{username}: {comment_message}")
+
+                        bot.get_target_id(user_id)
+
+                        # Filter comments based on keywords
                         bot.comments_handler.filter_comments_by_keywords(comment_message)
-                        user_id = int(change["value"]["sender_id"])
+
+                        # Handle user state
                         current_state = state_manager.get_state(user_id)
                         if current_state == BotState.IDLE:
                             state_manager.set_state(user_id, BotState.WAITING_FOR_WANT)
@@ -59,7 +64,7 @@ async def receive_comments(request: Request):
 
 @app.post("/webhook/messages")
 async def receive_messages(request: Request):
-    """ Обробка отриманих повідомлень у Direct. """
+    """Messages webhook handler."""
     data = await request.json()
     logging.info(f"Received Direct Message Webhook: {data}")
 
@@ -69,6 +74,7 @@ async def receive_messages(request: Request):
                 for event in entry["messaging"]:
                     sender_id = event["sender"]["id"]
                     message_text = event.get("message", {}).get("text", "")
+                    messages_handler.find_command(message_text)
                     logging.info(f"New message from {sender_id}: {message_text}")
 
     return {"status": "ok"}

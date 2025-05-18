@@ -1,6 +1,6 @@
 import json
 import os
-from instabot.bot import ChatBot
+from instabot.bot import ChatBot, CommentsHandler, MessageHandler
 
 
 def load_config(config_file):
@@ -13,6 +13,8 @@ username = os.getenv("INSTA_USERNAME")
 password = os.getenv("INSTA_PASSWORD")
 
 bot = ChatBot(username, password, config)
+comments_handler = CommentsHandler(bot.cl, config)
+messages_handler = MessageHandler(bot.cl)
 bot.login()
 
 bot.cl.base_headers[
