@@ -33,7 +33,7 @@ async def verify_webhook(request: Request):
     else:
         raise HTTPException(status_code=403, detail="Verification failed")
 
-
+# todo: check endpoints in Postman
 @app.post("/webhook/comments")
 async def receive_comments(request: Request):
     """Comments webhook handler."""

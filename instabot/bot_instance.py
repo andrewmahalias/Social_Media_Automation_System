@@ -14,7 +14,7 @@ password = os.getenv("INSTA_PASSWORD")
 
 bot = ChatBot(username, password, config)
 comments_handler = CommentsHandler(bot.cl, config)
-messages_handler = MessageHandler(bot.cl)
+messages_handler = MessageHandler(bot.cl, config)
 bot.login()
 
 bot.cl.base_headers[

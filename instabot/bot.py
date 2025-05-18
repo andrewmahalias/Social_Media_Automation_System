@@ -3,11 +3,8 @@ import logging
 from dotenv import load_dotenv
 from instagrapi import Client
 
-from instabot.bot_instance import load_config
-
 load_dotenv()
 logger = logging.getLogger()
-config = load_config("insta_config.json")
 
 
 class CommentsHandler:
@@ -29,6 +26,7 @@ class MessageHandler:
     def __init__(self, client, config):
         self.client = client
         self.latest_message = None
+        self.config = config
         self.commands = config['commands']
         self.messages = config['messages']
 

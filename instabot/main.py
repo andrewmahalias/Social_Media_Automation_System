@@ -1,10 +1,9 @@
 import logging
-import random
 import time
 
-from bot_instance import bot, config
+from bot_instance import bot
 from instabot.bot import MessageHandler
-from instabot.state_manager import StateManager, BotState
+from instabot.state_manager import StateManager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -14,7 +13,7 @@ def main():
     state_manager = StateManager()
 
     while True:
-        try: # todo: add main bot logic
+        try: # todo: add general bot logic
 
 
         except Exception as e:
