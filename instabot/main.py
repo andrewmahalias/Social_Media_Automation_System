@@ -12,8 +12,9 @@ def main():
     msg_handler = MessageHandler(bot.cl)
     state_manager = StateManager()
 
+    # todo: add general bot logic
     while True:
-        try: # todo: add general bot logic
+        try:
 
 
         except Exception as e:

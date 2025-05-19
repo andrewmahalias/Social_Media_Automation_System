@@ -14,7 +14,7 @@ app = FastAPI()
 config = load_config("insta_config.json")
 
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
-ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
+ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")  # todo: get the token on Meta for Developers?
 
 logging.basicConfig(level=logging.INFO)
 
@@ -33,7 +33,7 @@ async def verify_webhook(request: Request):
     else:
         raise HTTPException(status_code=403, detail="Verification failed")
 
-# todo: check endpoints in Postman
+
 @app.post("/webhook/comments")
 async def receive_comments(request: Request):
     """Comments webhook handler."""
