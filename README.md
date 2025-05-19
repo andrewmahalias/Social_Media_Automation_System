@@ -67,7 +67,7 @@ Modify ```config.json``` to change the bot's behavior:
     "subscribed_message": "Thank you you are with me! Please enter 'Watch' to get my content)",
     "await_message": "I`m still waiting for your action!"
   },
-  "post_url": "https://www.instagram.com/p/C1HW5ZnNFni/?igsh=dTRqcXU0NHNlcmRn",
+  "post_url": "https://www.instagram.com",
   "trigger_keywords": [
     "help",
     "support",
