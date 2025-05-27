@@ -1,20 +1,21 @@
 import logging
 import time
 
-from bot_instance import bot
-from instabot.bot import MessageHandler
+from bot_instance import bot, messages_handler, comments_handler
+
 from instabot.state_manager import StateManager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 def main():
-    msg_handler = MessageHandler(bot.cl)
+
     state_manager = StateManager()
 
     # todo: add general bot logic
     while True:
         try:
+
 
 
         except Exception as e:
