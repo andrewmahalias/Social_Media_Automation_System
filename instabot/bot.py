@@ -78,6 +78,9 @@ class ChatBot:
     def get_target_id(self, user_id):
         return user_id
 
+    def get_username(self, username):
+        return username
+
     def is_user_subscribed(self, user_id):
         try:
             relationship = self.cl.user_friendship_v1(user_id)

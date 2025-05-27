@@ -7,7 +7,7 @@ from fastapi import Response
 
 from instabot import state_manager
 
-from bot_instance import bot, messages_handler, load_config
+from bot_instance import bot, messages_handler, load_config, comments_handler
 from instabot.state_manager import BotState
 
 app = FastAPI()
@@ -51,14 +51,15 @@ async def receive_comments(request: Request):
                         logging.info(f"New comment from @{username}: {comment_message}")
 
                         bot.get_target_id(user_id)
+                        bot.get_username(username)
 
                         # Filter comments based on keywords
-                        bot.comments_handler.filter_comments_by_keywords(comment_message)
+                        comments_handler.filter_comments_by_keywords(comment_message)
 
                         # Handle user state
                         current_state = state_manager.get_state(user_id)
                         if current_state == BotState.IDLE:
-                            state_manager.set_state(user_id, BotState.WAITING_FOR_WANT)
+                            state_manager.set_state(user_id, BotState.WAITING_FOR_WANT, comment_message, username)
     return {"status": "ok"}
 
 
