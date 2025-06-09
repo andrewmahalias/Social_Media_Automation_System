@@ -1,13 +1,11 @@
 import logging
 import os
 
-import uvicorn
 from fastapi import FastAPI, Request, HTTPException
 from fastapi import Response
 
-from instabot import state_manager
-
 from bot_instance import bot, messages_handler, load_config, comments_handler
+from instabot import state_manager
 from instabot.state_manager import BotState
 
 app = FastAPI()
@@ -79,7 +77,4 @@ async def receive_messages(request: Request):
                     logging.info(f"New message from {sender_id}: {message_text}")
 
     return {"status": "ok"}
-
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+#todo: load the examples of JSON structure for webhooks to test in Postman
