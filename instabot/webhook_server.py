@@ -1,12 +1,17 @@
 import logging
 import os
 
+import uvicorn
 from fastapi import FastAPI, Request, HTTPException
 from fastapi import Response
 
-from bot_instance import bot, messages_handler, load_config, comments_handler
-from instabot import state_manager
-from instabot.state_manager import BotState
+from bot_instance import (bot,
+                          messages_handler,
+                          load_config,
+                          comments_handler)
+from instabot.main import handle_comment, handle_direct_message
+
+from instabot.state_manager import BotState, state_manager
 
 app = FastAPI()
 config = load_config("insta_config.json")
@@ -38,26 +43,24 @@ async def receive_comments(request: Request):
     data = await request.json()
     logging.info(f"Received Comment Webhook: {data}")
 
-    if "entry" in data:
-        for entry in data["entry"]:
-            if "changes" in entry:
-                for change in entry["changes"]:
-                    if change["field"] == "comments":
-                        comment_message = change["value"]["text"]
-                        user_id = int(change["value"]["from"]["id"])
-                        username = change["value"]["from"]["username"]
-                        logging.info(f"New comment from @{username}: {comment_message}")
+    if data.get("field") == "comments":
+        value = data.get("value", {})
+        comment_message = value.get("text")
+        user_id = int(value["from"]["id"])
+        username = value["from"]["username"]
 
-                        bot.get_target_id(user_id)
-                        bot.get_username(username)
+        # logging.info(f"New comment from @{username}: {comment_message}")
 
-                        # Filter comments based on keywords
-                        comments_handler.filter_comments_by_keywords(comment_message)
+        bot.get_target_id(user_id)
+        bot.get_username(username)
 
-                        # Handle user state
-                        current_state = state_manager.get_state(user_id)
-                        if current_state == BotState.IDLE:
-                            state_manager.set_state(user_id, BotState.WAITING_FOR_WANT, comment_message, username)
+        # Filter comments based on keywords
+        if comments_handler.filter_comments_by_keywords(comment_message):
+            current_state = state_manager.get_state(user_id)
+
+            if current_state == BotState.IDLE:
+                handle_comment(user_id, comment_message, username)
+
     return {"status": "ok"}
 
 
@@ -75,6 +78,10 @@ async def receive_messages(request: Request):
                     message_text = event.get("message", {}).get("text", "")
                     messages_handler.find_command(message_text)
                     logging.info(f"New message from {sender_id}: {message_text}")
+                    handle_direct_message(sender_id, message_text)
 
     return {"status": "ok"}
-#todo: load the examples of JSON structure for webhooks to test in Postman
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

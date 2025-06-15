@@ -26,3 +26,5 @@ class StateManager:
             return user_id, data
         return None, (None, None)
 
+state_manager = StateManager()
+

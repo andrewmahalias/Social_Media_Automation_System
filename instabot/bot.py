@@ -92,3 +92,5 @@ class ChatBot:
         except Exception as e:
             logging.error(f'Error checking subscription status for user ID {user_id}: {e}')
             return False
+
+

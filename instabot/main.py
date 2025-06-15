@@ -1,28 +1,26 @@
 import logging
+import time
 
-import uvicorn
-
-from bot_instance import bot, messages_handler, comments_handler, config
-from instabot.state_manager import StateManager, BotState
-from instabot.webhook_server import app
+from bot_instance import (bot,
+                          messages_handler,
+                          comments_handler,
+                          config)
+from instabot.state_manager import BotState, state_manager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-state_manager = StateManager()
 
 
 def handle_comment(user_id, comment_message, username):
     """ Handle new comment """
     if comments_handler.filter_comments_by_keywords(comment_message):
-        logging.info(f"New comment from @{username}: {comment_message}")
-        thread_id = bot.get_thread_id_from_user_id(user_id)
+        thread_id = messages_handler.get_thread_id_from_user_id(user_id)
 
         messages_handler.send_message_to_user(thread_id, config['messages']['greeting_message'])
 
         state_manager.set_state(user_id, BotState.WAITING_FOR_WANT, comment_message, username)
 
 
-def check_subscription(user_id, thread_id):
+def check_subscription(user_id, thread_id): # todo: check if thread_id is retrieved correctly
     """ Check subscription """
     if bot.is_user_subscribed(user_id):
         messages_handler.send_message_to_user(thread_id, config['messages']['subscribed_message'])
@@ -54,5 +52,10 @@ def handle_direct_message(user_id, message_text):
         messages_handler.send_message_to_user(thread_id, config['messages']['already_completed'])
 
 
-if __name__ == "__main__":  # todo: test the logic in Postman
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+if __name__ == "__main__":
+    while True:
+        user_id, data = state_manager.get_next_user()
+        if user_id:
+            comment, username = data
+            handle_comment(user_id, comment, username)
+        time.sleep(0.5)
