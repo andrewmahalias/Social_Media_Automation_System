@@ -1,3 +1,4 @@
+"""The bot module is used to handle comments and direct messages."""
 import logging
 
 from dotenv import load_dotenv

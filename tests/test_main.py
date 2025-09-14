@@ -1,37 +1,62 @@
-# test_handle_comment.py
-import pytest
 from unittest.mock import MagicMock
 
-from instabot.main import handle_comment
-from instabot.state_manager import BotState, state_manager
+import pytest
 
-@pytest.fixture
-def setup_mocks(monkeypatch):
-    # Мокаємо метод фільтрації коментарів
-    from instabot.bot_instance import comments_handler, messages_handler
+from instabot import main
+from instabot.main import check_subscription
+from instabot.state_manager import BotState
 
-    comments_handler.filter_comments_by_keywords = MagicMock(return_value=True)
-    messages_handler.get_thread_id_from_user_id = MagicMock(return_value="thread_123")
-    messages_handler.send_message_to_user = MagicMock()
 
-    return comments_handler, messages_handler
-
-def test_handle_comment_updates_state(setup_mocks):
-    user_id = 111
-    comment_message = "info"
+def test_handle_comment_updates_state(monkeypatch):
+    user_id = 123
+    comment_message = "hello bot"
     username = "test_user"
 
-    # Спочатку стан IDLE
-    state_manager.set_state(user_id, BotState.IDLE)
+    main.comments_handler = MagicMock()
+    main.comments_handler.filter_comments_by_keywords.return_value = True
 
-    handle_comment(user_id, comment_message, username)
+    main.messages_handler = MagicMock()
+    main.messages_handler.get_thread_id_from_user_id.return_value = "thread_123"
 
-    # Перевіряємо, що стан змінився
-    assert state_manager.get_state(user_id) == BotState.WAITING_FOR_WANT
+    main.config = {"messages": {"greeting_message": "Hi!"}}
 
-    # Перевіряємо, що метод send_message_to_user був викликаний
-    _, messages_handler = setup_mocks
-    messages_handler.send_message_to_user.assert_called_once_with(
-        "thread_123",
-        pytest.anything()  # тут можна перевірити точний ключ або повідомлення
+    main.state_manager = MagicMock()
+
+    main.handle_comment(user_id, comment_message, username, main.comments_handler, main.messages_handler, main.config,
+                        main.state_manager)
+
+    main.comments_handler.filter_comments_by_keywords.assert_called_once_with(comment_message)
+    main.messages_handler.get_thread_id_from_user_id.assert_called_once_with(user_id)
+    main.messages_handler.send_message_to_user.assert_called_once_with("thread_123", "Hi!")
+    main.state_manager.set_state.assert_called_once_with(
+        user_id, BotState.WAITING_FOR_WANT, comment_message, username
     )
+
+
+@pytest.mark.parametrize("is_subscribed,expected_state,expected_msg_key", [
+    (True, BotState.WAITING_FOR_WATCH, "subscribed_message"),
+    (False, BotState.CHECKING_SUBSCRIPTION, "non_subscribed_messages"),
+])
+def test_check_subscription(is_subscribed, expected_state, expected_msg_key):
+    user_id = 42
+    thread_id = "thread-42"
+
+    bot = MagicMock()
+    bot.is_user_subscribed.return_value = is_subscribed
+
+    messages_handler = MagicMock()
+    config = {"messages": {
+        "subscribed_message": "You are subscribed!",
+        "non_subscribed_messages": "Please subscribe!"
+    }}
+    state_manager = MagicMock()
+
+    check_subscription(user_id, thread_id, bot, messages_handler, config, state_manager)
+
+    bot.is_user_subscribed.assert_called_once_with(user_id)
+    messages_handler.send_message_to_user.assert_called_once_with(
+        thread_id, config["messages"][expected_msg_key]
+    )
+    state_manager.set_state.assert_called_once_with(user_id, expected_state)
+
+#todo: add test handle_direct_message after state machine is implemented

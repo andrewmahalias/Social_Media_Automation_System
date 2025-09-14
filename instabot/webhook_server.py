@@ -1,3 +1,4 @@
+"""The Webhook server is used to get messages and comments from Instagram."""
 import logging
 import os
 
@@ -5,21 +6,19 @@ import uvicorn
 from fastapi import FastAPI, Request, HTTPException
 from fastapi import Response
 
-from bot_instance import (bot,
-                          messages_handler,
-                          load_config,
-                          comments_handler)
+from instabot.bot_instance import init_bot
 from instabot.main import handle_comment, handle_direct_message
 
 from instabot.state_manager import BotState, state_manager
 
 app = FastAPI()
-config = load_config("insta_config.json")
 
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")  # todo: get the token on Meta for Developers?
 
 logging.basicConfig(level=logging.INFO)
+
+bot, comments_handler, messages_handler, config = init_bot()
 
 
 @app.get("/webhook")
@@ -49,7 +48,7 @@ async def receive_comments(request: Request):
         user_id = int(value["from"]["id"])
         username = value["from"]["username"]
 
-        # logging.info(f"New comment from @{username}: {comment_message}")
+        logging.info(f"New comment from @{username}: {comment_message}")
 
         bot.get_target_id(user_id)
         bot.get_username(username)
